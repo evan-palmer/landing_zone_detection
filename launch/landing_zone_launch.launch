@@ -1,0 +1,8 @@
+<launch>
+    <node
+        pkg="landing_zone_detection"
+        type"landing_zone_detector"
+        name"landing_zone_detector"
+    >
+    <rosparam command="load" file="$(find landing_zone_detection/params.yaml)"/>
+</launch>

@@ -1,0 +1,5 @@
+# Topics
+depth_topic: "/camera/depth/image_rect_raw"
+pointcloud_topic: "/camera/depth/color/points"
+gyro_topic: "/camera/gyro/sample"
+accel_topic: "/camera/accel/sample"
