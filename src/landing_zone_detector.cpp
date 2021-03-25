@@ -24,13 +24,16 @@ class LandingZoneDetection {
             _nh.getParam("depth_topic", depth_topic);
 
             // Initialize the depth subscriber and connect it to the correct callback function
-            depth_subscriber = node.subscribe(depth_topic, 1, LandingZoneDetection::depth_callback, this);
+            depth_subscriber = node.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
+
+	    ROS_INFO("Instantiating a new LandingZoneDetectionObject");
+
         }
 
         void depth_callback(const sensor_msgs::ImageConstPtr& image) {
             ROS_INFO("Receiving Data");
         }
-}
+};
 
 
 int main(int argc, char ** argv) {
