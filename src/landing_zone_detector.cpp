@@ -32,7 +32,7 @@ class LandingZoneDetection {
             _nh.getParam("depth_topic", depth_topic);
 
             // Initialize the depth subscriber and connect it to the correct callback function
-            depth_subscriber = it.subscribe(depth_topic, 1, LandingZoneDetection::depth_callback, this);
+            depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW, cv::WINDOW_AUTOSIZE);
@@ -59,7 +59,7 @@ class LandingZoneDetection {
 
 
 int main(int argc, char ** argv) {
-    ros::init(argc, argv, "landing_zone_detector");
+    ros::init(argc, argv, "landing_zone_detector_node");
     LandingZoneDetection lz;
     ros::spin();
     return 0;

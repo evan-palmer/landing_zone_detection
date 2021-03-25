@@ -22,4 +22,5 @@ add_executable(wall_following_node src/landing_zone_detector.cpp)
 
 target_link_libraries(wall_following_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
