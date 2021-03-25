@@ -16,8 +16,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(wall_following_node src/landing_zone_detector.cpp)
+add_executable(landing_zone_detector_node src/landing_zone_detector.cpp)
 
-target_link_libraries(wall_following_node
+target_link_libraries(landing_zone_detector_node
   ${catkin_LIBRARIES}
 )
