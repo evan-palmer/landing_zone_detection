@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  cv_bridge
+  image_transport
 )
 
 catkin_package()
@@ -20,4 +22,5 @@ add_executable(landing_zone_detector_node src/landing_zone_detector.cpp)
 
 target_link_libraries(landing_zone_detector_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
