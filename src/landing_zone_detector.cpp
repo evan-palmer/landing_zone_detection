@@ -55,7 +55,7 @@ class LandingZoneDetection {
             cv::imshow(WINDOW, cv_ptr->image);
             cv::waitKey(100);
         }
-}
+};
 
 
 int main(int argc, char ** argv) {
