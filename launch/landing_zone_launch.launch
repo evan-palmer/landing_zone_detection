@@ -3,6 +3,7 @@
         pkg="landing_zone_detection"
         type="landing_zone_detector_node"
         name="landing_zone_detector_node"
+	output="screen"
     >
         <rosparam command="load" file="$(find landing_zone_detection)/params.yaml"/>
     </node>

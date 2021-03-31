@@ -6,7 +6,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 
-static const std::string WINDOW = "Test Window";
+static const std::string WINDOW = "Cool Window";
 
 class LandingZoneDetection {
     private:
@@ -44,16 +44,26 @@ class LandingZoneDetection {
 
         void depth_callback(const sensor_msgs::ImageConstPtr& image) {
             cv_bridge::CvImageConstPtr cv_ptr;
+	    double distance_top = 0;	
+	    double distance_bottom = 0;
+	    double distance_left = 0;
+	    double distance_right = 0;
 
             try {
                 cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::TYPE_16UC1);
-            } catch (cv_bridge::Exception& e) {
+            	distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cv_ptr->image.cols/2);
+		distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows, cv_ptr->image.cols/2);
+		distance_left = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows/2, 0);
+		distance_right = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows/2, cv_ptr->image.cols);
+		ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
+		//cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
+	    } catch (cv_bridge::Exception& e) {
                 ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
                 return;
             }
 
-            cv::imshow(WINDOW, cv_ptr->image);
-            cv::waitKey(100);
+//            cv::imshow(WINDOW, cv_ptr->image);
+//            cv::waitKey(100);
         }
 };
 
