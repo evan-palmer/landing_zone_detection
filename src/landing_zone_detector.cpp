@@ -6,7 +6,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 
-static const std::string WINDOW = "Cool Window";
+static const std::string WINDOW = "Window";
 
 class LandingZoneDetection {
     private:
@@ -35,39 +35,44 @@ class LandingZoneDetection {
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
 
             // Initialize a new OpenCV window
-            cv::namedWindow(WINDOW, cv::WINDOW_NORMAL);
+            cv::namedWindow(WINDOW);
         }
 
         ~LandingZoneDetection() {
             cv::destroyWindow(WINDOW);
-        }        
+        }
 
-        void depth_callback(const sensor_msgs::ImageConstPtr& image) {
+        void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
             cv_bridge::CvImageConstPtr cv_ptr;
-	    double distance_top = 0;	
+	    double distance_top = 0;
 	    double distance_bottom = 0;
 	    double distance_left = 0;
 	    double distance_right = 0;
 
             try {
-                cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::TYPE_16UC1);
-            	distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cv_ptr->image.cols/2);
-                distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows, cv_ptr->image.cols/2);
-                distance_left = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows/2, 0);
-                distance_right = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows/2, cv_ptr->image.cols);
-                ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
-                //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
-
+                cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
 		int cols = (int)cv_ptr->image.cols;
 		int rows = (int)cv_ptr->image.rows;
-                
-                // Edge boxes
+
+		//distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
+                distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows, cols/2);
+                //distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, 0);
+                //distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols);
+
+		ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
+                //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
+
+		// Left Box
                 cv::rectangle(cv_ptr->image, cv::Point2f(0, rows/2 - 5), cv::Point2f(5, rows/2 + 5), 0xffff, 3);
-                cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
+
+		// Right Box
+		cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
+
+		// Top Box
                 cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, 0), cv::Point2f(cols/2 + 5, 5), 0xffff, 3);
+
+		// Bottom Box
                 cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
-
-
             } catch (cv_bridge::Exception& e) {
                     ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
                     return;
