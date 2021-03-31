@@ -35,7 +35,7 @@ class LandingZoneDetection {
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
 
             // Initialize a new OpenCV window
-            cv::namedWindow(WINDOW, cv::WINDOW_AUTOSIZE);
+            cv::namedWindow(WINDOW, cv::WINDOW_NORMAL);
         }
 
         ~LandingZoneDetection() {
@@ -57,18 +57,15 @@ class LandingZoneDetection {
                 distance_right = 0.001*cv_ptr->image.at<u_int16_t>(cv_ptr->image.rows/2, cv_ptr->image.cols);
                 ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
                 //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
-                
-                // Top center box
-                cv::rectangle(cv_ptr->image, cv::Point2f(0, <u_int_16_t>(cv_ptr->image.cols/2) - 5), cv::Point2f(5, <u_int_16_t>(cv_ptr->image.cols/2) + 5), 0xffff, 3);
 
-                // Bottom center box
-                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows) - 5, <u_int_16_t>(cv_ptr->image.cols/2) - 5), cv::Point2f(<u_int_16_t>(cv_ptr->image.rows), <u_int_16_t>(cv_ptr->image.cols/2) + 5), 0xffff, 3);
-
-                // Left box
-                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) - 5, 0), cv::Point2f(<u_int_16_t>(cv_ptr->image/2) + 5, 5), 0xffff, 3);
+		int cols = (int)cv_ptr->image.cols;
+		int rows = (int)cv_ptr->image.rows;
                 
-                // Right box
-                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) - 5, <u_int_16_t>(cv_ptr->image.cols) - 5), cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) + 5, <u_int_16_t>(cv_ptr->image.cols)), 0xffff, 3);
+                // Edge boxes
+                cv::rectangle(cv_ptr->image, cv::Point2f(0, rows/2 - 5), cv::Point2f(5, rows/2 + 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, 0), cv::Point2f(cols/2 + 5, 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
 
 
             } catch (cv_bridge::Exception& e) {
