@@ -59,16 +59,16 @@ class LandingZoneDetection {
                 //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
                 
                 // Top center box
-                cv::rectangle(cv_ptr->image, cv::Point2f(0, cv_ptr->image.cols/2 - 5), cv::Point2f(5, cv_ptr->image.cols/2 + 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(0, <u_int_16_t>(cv_ptr->image.cols/2) - 5), cv::Point2f(5, <u_int_16_t>(cv_ptr->image.cols/2) + 5), 0xffff, 3);
 
                 // Bottom center box
-                cv::rectangle(cv_ptr->image, cv::Point2f(cv_ptr->image.rows - 5, cv_ptr->image.cols/2 - 5), cv::Point2f(cv_ptr->image.rows, cv_ptr->image.cols/2 + 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows) - 5, <u_int_16_t>(cv_ptr->image.cols/2) - 5), cv::Point2f(<u_int_16_t>(cv_ptr->image.rows), <u_int_16_t>(cv_ptr->image.cols/2) + 5), 0xffff, 3);
 
                 // Left box
-                cv::rectangle(cv_ptr->image, cv::Point2f(cv_ptr->image.rows/2 - 5, 0), cv::Point2f(cv_ptr->image/2 + 5, 5), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) - 5, 0), cv::Point2f(<u_int_16_t>(cv_ptr->image/2) + 5, 5), 0xffff, 3);
                 
                 // Right box
-                cv::rectangle(cv_ptr->image, cv::Point2f(cv_ptr->image.rows/2 - 5, cv_ptr->image.cols - 5), cv::Point2f(cv_ptr->image.rows/2 + 5, cv_ptr->image.cols), 0xffff, 3);
+                cv::rectangle(cv_ptr->image, cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) - 5, <u_int_16_t>(cv_ptr->image.cols) - 5), cv::Point2f(<u_int_16_t>(cv_ptr->image.rows/2) + 5, <u_int_16_t>(cv_ptr->image.cols)), 0xffff, 3);
 
 
             } catch (cv_bridge::Exception& e) {
