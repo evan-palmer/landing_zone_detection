@@ -78,7 +78,6 @@ class LandingZoneDetection {
 
 
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
-<<<<<<< HEAD
             float test_distance = 2000;
 
             // Compute the invalid depth band ratio
@@ -97,27 +96,29 @@ class LandingZoneDetection {
             float horizontal_range = diagonal * sin(atan((msg->width)/(msg->height)));
             float vertical_range = diagonal * cos(atan((msg->width)/(msg->height)));
 
-=======
+            // Create a new cv bridge pointer
             cv_bridge::CvImageConstPtr cv_ptr;
->>>>>>> 1a2578bd4575cfba1e2f6850550d9d6630058795
 
             try {
                 cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             } catch (cv_bridge::Exception& e) {
-                    ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
-                    return;
+                ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
+                return;
             }
 
             int cols = (int)cv_ptr->image.cols;
             int rows = (int)cv_ptr->image.rows;
 
             //double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows, cols/2);
+            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
             //double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, 0);
-            //double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols);
+            //double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
-            ROS_INFO("Distance Bottom: %f", distance_bottom);
+            // ROS_INFO("Distance Bottom: %f", distance_bottom);
             //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
+
+            // Draw idb
+            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), #ffff00, 2);
 
             // Left Box
             cv::rectangle(cv_ptr->image, cv::Point2f(0, rows/2 - 5), cv::Point2f(5, rows/2 + 5), 0xffff, 3);
