@@ -4,7 +4,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <sensor_msgs/image_encodings.h>
-
+#include <math.h>
 
 static const std::string WINDOW = "Window";
 
@@ -16,6 +16,11 @@ class LandingZoneDetection {
 
         // Parameters
         std::string depth_topic;
+        float baseline;
+        float horizontal_resolution;
+        float horizontal_fov;
+        float vertical_fov;
+        float diagonal_fov;
 
         // Image transport object used to convert depth image to OpenCV image
         image_transport::ImageTransport it;
@@ -30,6 +35,10 @@ class LandingZoneDetection {
 
             // Load the system parameters
             _nh.getParam("depth_topic", depth_topic);
+            _nh.getParam("baseline", baseline);
+            _nh.getParam("hfov", horizontal_fov);
+            _nh.getParam("vfov", vertical_fov);
+            _nh.getParam("dfov", diagonal_fov);
 
             // Initialize the depth subscriber and connect it to the correct callback function
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
@@ -38,11 +47,56 @@ class LandingZoneDetection {
             cv::namedWindow(WINDOW);
         }
 
+        // Destructor
         ~LandingZoneDetection() {
             cv::destroyWindow(WINDOW);
         }
 
+
+        // Compute the Depth-band-ratio
+        float compute_dbr(float baseline, float hfov, float z) {
+            return baseline / (2 * z * tan(hfov / 2));
+        }
+
+
+        // Compute the distance-based diagonal fov
+        float compute_diagonal_fov(float hfov, float baseline, float z) {
+            return (hfov / 2) + atan(tan(hfov / 2) - (baseline / z));
+        }
+
+
+        // Compute the invalid depth band
+        float compute_idb(float dbr, float hres) {
+            return ceil(dbr * hres);
+        }
+
+
+        // Compute the length of the diagonal according to a distance and diagonal field of view
+        float compute_diagonal(float z, float theta) {
+            return 2 * z * tan(theta / 2);
+        }
+
+
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
+            float test_distance = 2000;
+
+            // Compute the invalid depth band ratio
+            float dbr = compute_dbr(baseline, horizontal_fov, test_distance);
+
+            // Compute the pixels associated with the invalid depth band
+            float idb = compute_idb(dbr, msg->width);
+
+            // Compute the distance-based diagonal fov
+            float dfov = compute_diagonal_fov(horizontal_fov, baseline, test_distance);
+
+            // Compute the length of the diagonal
+            float diagonal = compute_diagonal(test_distance, dfov);
+
+            // Apply the fov to distance mapping
+            float horizontal_range = diagonal * sin(atan((msg->width)/(msg->height)));
+            float vertical_range = diagonal * cos(atan((msg->width)/(msg->height)));
+
+
             try {
                 cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             } catch (cv_bridge::Exception& e) {
