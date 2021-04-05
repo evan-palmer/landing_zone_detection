@@ -98,7 +98,7 @@ class LandingZoneDetection {
             float horizontal_range = diagonal * sin(atan((msg->width)/(msg->height)));
             float vertical_range = diagonal * cos(atan((msg->width)/(msg->height)));
 
-            ROS_INFO("Horizontal Distance: %f Vertical Range:", horizontal_range, vertical_range);
+            ROS_INFO("Horizontal Distance: %f Vertical Range: %f", horizontal_range, vertical_range);
 
             // Create a new cv bridge pointer
             cv_bridge::CvImageConstPtr cv_ptr;
