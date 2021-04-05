@@ -94,11 +94,13 @@ class LandingZoneDetection {
             // Compute the length of the diagonal
             float diagonal = compute_diagonal(test_distance, dfov);
 
-            // Apply the fov to distance mapping
-            float horizontal_range = diagonal * sin(atan((msg->width)/(msg->height)));
-            float vertical_range = diagonal * cos(atan((msg->width)/(msg->height)));
+            float beta = atan(msg->width/msg->height);
 
-            ROS_INFO("Horizontal Distance: %f Vertical Range: %f", horizontal_range, vertical_range);
+            // Apply the fov to distance mapping
+            float horizontal_range = diagonal * sin(beta);
+            float vertical_range = diagonal * cos(beta);
+
+            ROS_INFO("Beta: %f  Horizontal Distance: %f  Vertical Range: %f", beta, horizontal_range, vertical_range);
 
             // Create a new cv bridge pointer
             cv_bridge::CvImageConstPtr cv_ptr;
@@ -125,7 +127,7 @@ class LandingZoneDetection {
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1 + adjacent_padding, rows - 1), 0xffff00, 2);
 
             // Left Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(idb + adjacent_padding, rows/2 - 5), cv::Point2f(5, rows/2 + 5), 0xffff, 3);
+            cv::rectangle(cv_ptr->image, cv::Point2f(idb + adjacent_padding, rows/2 - 5), cv::Point2f(5 + idb + adjacent_padding, rows/2 + 5), 0xffff, 3);
 
             // Right Box
             cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
