@@ -94,7 +94,8 @@ class LandingZoneDetection {
             // Compute the length of the diagonal
             float diagonal = compute_diagonal(test_distance, dfov);
 
-            float beta = atan(msg->width/msg->height);
+            // Calculate beta
+            float beta = atan((float)msg->width/(float)msg->height);
 
             // Apply the fov to distance mapping
             float horizontal_range = diagonal * sin(beta);
@@ -116,7 +117,7 @@ class LandingZoneDetection {
             int rows = (int)cv_ptr->image.rows;
 
             //double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
+            // double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
             //double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, 0);
             //double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
@@ -124,10 +125,10 @@ class LandingZoneDetection {
             //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
 
             // Draw idb
-            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1 + adjacent_padding, rows - 1), 0xffff00, 2);
+            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(2*idb - 1, rows - 1), 0xffff00, 2);
 
             // Left Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(idb + adjacent_padding, rows/2 - 5), cv::Point2f(5 + idb + adjacent_padding, rows/2 + 5), 0xffff, 3);
+            cv::rectangle(cv_ptr->image, cv::Point2f(2*idb, rows/2 - 5), cv::Point2f(5 + 2*idb, rows/2 + 5), 0xffff, 3);
 
             // Right Box
             cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
