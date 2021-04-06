@@ -21,7 +21,7 @@ class LandingZoneDetection {
         float horizontal_fov;
         float vertical_fov;
         float diagonal_fov;
-        int adjacent_padding;
+        float padding_multiplier;
         float test_distance;
 
         // Image transport object used to convert depth image to OpenCV image
@@ -41,7 +41,7 @@ class LandingZoneDetection {
             _nh.getParam("hfov", horizontal_fov);
             _nh.getParam("vfov", vertical_fov);
             _nh.getParam("dfov", diagonal_fov);
-            _nh.getParam("adjacent_padding", adjacent_padding);
+            _nh.getParam("padding_multiplier", padding_multiplier);
             _nh.getParam("test_distance", test_distance);
 
             // Initialize the depth subscriber and connect it to the correct callback function
@@ -86,7 +86,7 @@ class LandingZoneDetection {
             float dbr = compute_dbr(baseline, horizontal_fov, test_distance);
 
             // Compute the pixels associated with the invalid depth band
-            float idb = compute_idb(dbr, msg->width);
+            float idb = compute_idb(dbr, msg->width) * padding_multiplier;
 
             // Compute the distance-based diagonal fov
             float dfov = compute_diagonal_fov(horizontal_fov, baseline, test_distance);
@@ -117,7 +117,7 @@ class LandingZoneDetection {
             int rows = (int)cv_ptr->image.rows;
 
             //double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            // double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
+            //double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
             //double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, 0);
             //double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
@@ -125,10 +125,10 @@ class LandingZoneDetection {
             //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
 
             // Draw idb
-            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(2*idb - 1, rows - 1), 0xffff00, 2);
+            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);
 
             // Left Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(2*idb, rows/2 - 5), cv::Point2f(5 + 2*idb, rows/2 + 5), 0xffff, 3);
+            cv::rectangle(cv_ptr->image, cv::Point2f(idb, rows/2 - 5), cv::Point2f(5 + idb, rows/2 + 5), 0xffff, 3);
 
             // Right Box
             cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);

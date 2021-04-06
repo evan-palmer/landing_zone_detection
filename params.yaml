@@ -2,11 +2,11 @@
 depth_topic: "/camera/depth/image_rect_raw"
 
 # IDR
-baseline: 95         # mm
-hfov: 1.5708         # 90 +- 1 degrees
-vfov: 1.13446        # 65 +- 1 degrees
-dfov: 1.55334        # 89 +- 1 degrees
-adjacent_padding: 25 # Pixels
+baseline: 95            # mm
+hfov: 1.5708            # 90 +- 1 degrees
+vfov: 1.13446           # 65 +- 1 degrees
+dfov: 1.55334           # 89 +- 1 degrees
+padding_multiplier: 3   # 3x
 
 # Testing Purposes
 test_distance: 2000 # mm
