@@ -52,14 +52,16 @@ class LandingZoneDetection {
         }
 
 
-        // Destructor
+        /*
+         * Class destructor
+         */
         ~LandingZoneDetection() {
             cv::destroyWindow(WINDOW);
         }
 
 
         /*
-         * Compute the depth band ratio using the horizontal field of view, distance, and baseline
+         * Compute the depth band ratio using the horizontal field-of-view, distance, and baseline
          */
         float compute_dbr(float baseline, float hfov, float z) {
             return baseline / (2 * z * tan(hfov / 2));
@@ -74,18 +76,25 @@ class LandingZoneDetection {
         }
 
 
-        // Compute the distance-based diagonal fov
+        /*
+         * Compute the diagonal field-of-view for a given distance
+         */
         float compute_diagonal_fov(float hfov, float baseline, float z) {
             return (hfov / 2) + atan(tan(hfov / 2) - (baseline / z));
         }
 
 
-        // Compute the length of the diagonal according to a distance and diagonal field of view
+        /*
+         * Compute the length of the diagonal according to a distance and diagonal field of view
+         */
         float compute_diagonal(float z, float theta) {
             return 2 * z * tan(theta / 2);
         }
 
 
+        /*
+         * Callback function that handles processing the depth image
+         */
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
             // Compute the invalid depth band ratio
             float dbr = compute_dbr(baseline, horizontal_fov, test_distance);
@@ -109,6 +118,7 @@ class LandingZoneDetection {
             // Create a new cv bridge pointer
             cv_bridge::CvImageConstPtr cv_ptr;
 
+            // Comvert the ROS Image msg into a cv pointer
             try {
                 cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             } catch (cv_bridge::Exception& e) {
@@ -116,6 +126,7 @@ class LandingZoneDetection {
                 return;
             }
 
+            // Get the number of columns and rows in the image
             int cols = (int)cv_ptr->image.cols;
             int rows = (int)cv_ptr->image.rows;
 
