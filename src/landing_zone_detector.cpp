@@ -24,6 +24,9 @@ class LandingZoneDetection {
         float padding_multiplier;
         float test_distance;
 
+        // Create a new cv bridge pointer
+        cv_bridge::CvImageConstPtr cv_ptr;
+
         // Image transport object used to convert depth image to OpenCV image
         image_transport::ImageTransport it;
 
@@ -92,6 +95,18 @@ class LandingZoneDetection {
         }
 
 
+        void mouse_callback(int event, int x, int y, int f, void*) {
+            if (event != CV_EVENT_LBUTTONDOWN) {
+                return;
+            }
+
+            double distance = 0.001*cv_ptr->image.at<u_int16_t>(y, x);
+
+            ROS_INFO("Distance at Point (%d, %d): %f", x, y, distance);
+            //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
+        }
+
+
         /*
          * Callback function that handles processing the depth image
          */
@@ -115,8 +130,8 @@ class LandingZoneDetection {
             float horizontal_range = diagonal * sin(beta);
             float vertical_range = diagonal * cos(beta);
 
-            // Create a new cv bridge pointer
-            cv_bridge::CvImageConstPtr cv_ptr;
+            // // Create a new cv bridge pointer
+            // cv_bridge::CvImageConstPtr cv_ptr;
 
             // Comvert the ROS Image msg into a cv pointer
             try {
@@ -130,13 +145,12 @@ class LandingZoneDetection {
             int cols = (int)cv_ptr->image.cols;
             int rows = (int)cv_ptr->image.rows;
 
-            double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
-            double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
-            double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
+            // double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
+            // double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
+            // double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
+            // double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
-            ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
-            //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
+            // ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
 
             // Draw idb
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);
@@ -154,6 +168,7 @@ class LandingZoneDetection {
             cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
 
             cv::imshow(WINDOW, cv_ptr->image);
+            cv::setMouseCallback(WINDOW, mouse_callback, 0);
             cv::waitKey(100);
         }
 };
