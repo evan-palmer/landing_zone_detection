@@ -51,19 +51,24 @@ class LandingZoneDetection {
             cv::namedWindow(WINDOW);
         }
 
+
         // Destructor
         ~LandingZoneDetection() {
             cv::destroyWindow(WINDOW);
         }
 
 
-        // Compute the Depth-band-ratio
+        /*
+         * Compute the depth band ratio using the horizontal field of view, distance, and baseline
+         */
         float compute_dbr(float baseline, float hfov, float z) {
             return baseline / (2 * z * tan(hfov / 2));
         }
 
 
-        // Compute the invalid depth band
+        /*
+         * Compute the number of pixels that fall within the invalid depth band
+         */
         float compute_idb(float dbr, float hres) {
             return ceil(dbr * hres);
         }
@@ -114,12 +119,12 @@ class LandingZoneDetection {
             int cols = (int)cv_ptr->image.cols;
             int rows = (int)cv_ptr->image.rows;
 
-            //double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            //double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
-            //double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, 0);
-            //double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
+            double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
+            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
+            double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
+            double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
-            // ROS_INFO("Distance Bottom: %f", distance_bottom);
+            ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
             //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
 
             // Draw idb
