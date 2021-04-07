@@ -95,16 +95,20 @@ class LandingZoneDetection {
         }
 
 
-        void mouse_callback(int event, int x, int y, int f, void*) {
-            if (event != CV_EVENT_LBUTTONDOWN) {
+        void mouse_callback(int event, int x, int y, int, void*) {
+            if (event != cv::EVENT_LBUTTONDOWN) {
                 return;
             }
 
-            double distance = 0.001*cv_ptr->image.at<u_int16_t>(y, x);
+            double distance = 0.001 * cv_ptr->image.at<u_int16_t>(y, x);
 
             ROS_INFO("Distance at Point (%d, %d): %f", x, y, distance);
             //cv::putText(cv_ptr->image, std::to_string(distance), cv::Point(10, cv_ptr->image.rows/2), cv::FONT_HERSHEY_DUPLEX, 0.6, 0xffff, 2);
         }
+
+
+        static void mouse_callback(int event, int x, int y, int, void* params) {
+            
 
 
         /*
@@ -168,7 +172,7 @@ class LandingZoneDetection {
             cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
 
             cv::imshow(WINDOW, cv_ptr->image);
-            cv::setMouseCallback(WINDOW, mouse_callback, 0);
+            cv::setMouseCallback(WINDOW, mouse_callback, this);
             cv::waitKey(100);
         }
 };
