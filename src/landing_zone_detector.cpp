@@ -15,20 +15,20 @@ class LandingZoneDetection {
         ros::NodeHandle _nh;
 
         // Parameters
-        std::string depth_topic;
-        float baseline;
-        float horizontal_resolution;
-        float horizontal_fov;
-        float vertical_fov;
-        float diagonal_fov;
-        float padding_multiplier;
-        float test_distance;
+        std::string depth_topic;        // Topic to read the depth images from
+        float baseline;                 // Distance from the left imager to the right imager
+        float horizontal_resolution;    // Horizontal resolution of the left and right imagers
+        float horizontal_fov;           // Horizontal field-of-view of the left and right imagers
+        float vertical_fov;             // Vertical field-of-view of the left and right imagers
+        float diagonal_fov;             // Diagonal field-of-view of the left and right imagers
+        float padding_multiplier;       // Parameter indicating the multiplier to apply to the width of the invalid depth band measurement (takes into account the adjacent invalid points)
+        float test_distance;            // Parameter to apply for testing distance (In future will be altitude)
 
         // Image transport object used to convert depth image to OpenCV image
         image_transport::ImageTransport it;
 
-        // Subscribers
-        image_transport::Subscriber depth_subscriber;       // Subscriber used to subscribe to the depth camera info
+        // Subscriber used to subscribe to the depth camera info
+        image_transport::Subscriber depth_subscriber;
 
     public:
         LandingZoneDetection() : it(node) {
@@ -93,6 +93,14 @@ class LandingZoneDetection {
 
 
         /*
+         * Compute beta (one of the angles in a right triangle produced by the horizontal, diagonal, and vertial widths)
+         */ 
+        float compute_beta(float width, float height) {
+            return atan(width/height);
+        }
+
+
+        /*
          * Callback function that handles processing the depth image
          */
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
@@ -109,7 +117,7 @@ class LandingZoneDetection {
             float diagonal = compute_diagonal(test_distance, dfov);
 
             // Calculate beta
-            float beta = atan((float)msg->width/(float)msg->height);
+            float beta = compute_beta((float)msg->width, (float)msg->height);
 
             // Apply the fov to distance mapping
             float horizontal_range = diagonal * sin(beta);
