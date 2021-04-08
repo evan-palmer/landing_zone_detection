@@ -115,7 +115,7 @@ class LandingZoneDetector {
         void mouse_callback(int event, int x, int y) {
             double distance = 0.001*cv_ptr->image.at<u_int16_t>(y, x);
 
-            ROS_INFO("Distance at point (%d, %d): %f", x, y, distance);
+            ROS_INFO("Distance at point (%d, %d): %f meters", x, y, distance);
         }
 
 
