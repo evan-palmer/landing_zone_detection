@@ -8,7 +8,7 @@
 
 static const std::string WINDOW = "Window";
 
-class LandingZoneDetection {
+class LandingZoneDetector {
     private:
         // Node Handles
         ros::NodeHandle node;
@@ -30,8 +30,11 @@ class LandingZoneDetection {
         // Subscriber used to subscribe to the depth camera info
         image_transport::Subscriber depth_subscriber;
 
+        // Create a new cv bridge pointer
+        cv_bridge::CvImageConstPtr cv_ptr;
+
     public:
-        LandingZoneDetection() : it(node) {
+        LandingZoneDetector() : it(node) {
             // Initialize the node handles
             _nh = ros::NodeHandle("~");
 
@@ -45,17 +48,14 @@ class LandingZoneDetection {
             _nh.getParam("test_distance", test_distance);
 
             // Initialize the depth subscriber and connect it to the correct callback function
-            depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetection::depth_callback, this);
+            depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetector::depth_callback, this);
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
         }
 
 
-        /*
-         * Class destructor
-         */
-        ~LandingZoneDetection() {
+        ~LandingZoneDetector() {
             cv::destroyWindow(WINDOW);
         }
 
@@ -99,6 +99,25 @@ class LandingZoneDetection {
             return atan(width/height);
         }
 
+        
+        /*
+         * Testing Purposes
+         */
+        static void onMouse(int event, int x, int y, int, void* detector) {
+            LandingZoneDetector* test = reinterpret_cast<LandingZoneDetector*>(detector);
+            test->mouse_callback(event, x, y);
+        }
+
+
+        /*
+         * Testing Purposes
+         */
+        void mouse_callback(int event, int x, int y) {
+            double distance = 0.001*cv_ptr->image.at<u_int16_t>(y, x);
+
+            ROS_INFO("Distance at point (%d, %d): %f", x, y, distance);
+        }
+
 
         /*
          * Callback function that handles processing the depth image
@@ -123,8 +142,8 @@ class LandingZoneDetection {
             float horizontal_range = diagonal * sin(beta);
             float vertical_range = diagonal * cos(beta);
 
-            // Create a new cv bridge pointer
-            cv_bridge::CvImageConstPtr cv_ptr;
+            // // Create a new cv bridge pointer
+            // cv_bridge::CvImageConstPtr cv_ptr;
 
             // Comvert the ROS Image msg into a cv pointer
             try {
@@ -138,12 +157,12 @@ class LandingZoneDetection {
             int cols = (int)cv_ptr->image.cols;
             int rows = (int)cv_ptr->image.rows;
 
-            double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
-            double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
-            double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
+            // double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
+            // double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
+            // double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
+            // double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
 
-            ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
+            // ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
 
             // Draw idb
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);
@@ -161,14 +180,17 @@ class LandingZoneDetection {
             cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
 
             cv::imshow(WINDOW, cv_ptr->image);
+            cv::setMouseCallback(WINDOW, onMouse, this);
             cv::waitKey(100);
         }
 };
 
 
+
+
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "landing_zone_detector_node");
-    LandingZoneDetection lz;
+    LandingZoneDetector lz;
     ros::spin();
     return 0;
 }
