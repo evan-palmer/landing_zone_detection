@@ -3,6 +3,11 @@
         <rosparam command="load" file="$(find landing_zone_detection)/params.yaml"/>
     </node>
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-        <arg name="filters" value="temporal"/>
+       <arg name="filters" value="temporal"/>
     </include>
+    <param name="enable_auto_exposure" value="False"/>
+    <param name="exposure" value="20000"/>
+    <param name="frames_queue_size" value="16"/>
+    <param name="filter_smooth_delta" value="20"/>
+    <param name="filter_smooth_alpha" value="0.4000000059604645"/>
 </launch>
