@@ -3,6 +3,7 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
 #include <sensor_msgs/image_encodings.h>
 #include <math.h>
 
@@ -118,6 +119,36 @@ class LandingZoneDetector {
             ROS_INFO("Distance at point (%d, %d): %f meters", x, y, distance);
         }
 
+        
+        float get_max_gradient(const cv::Mat& image) {
+            // Matrices to store the gradients
+            cv::Mat grad_x;
+            cv::Mat grad_y;
+
+            // Calculate the x gradient
+            cv::Sobel(image, grad_x, -1, 1, 0);
+
+            // Calculate the y gradient
+            cv::Sobel(image, grad_y, -1, 0, 1);
+
+            // Variables used to store min/max values
+            double min_x_value, min_y_value;
+            double max_x_value, max_y_value;
+
+            // Variables used to store min/max locations
+            cv::Point min_x_loc, min_y_loc;
+            cv::Point max_x_loc, max_y_loc;
+
+            cv::minMaxLoc(grad_x, &min_x_value, &max_x_value, &min_x_loc, &max_x_loc);
+            cv::minMaxLoc(grad_y, &min_y_value, &max_y_value, &min_y_loc, &max_y_loc);
+
+            float max_gradient = max_x_value > max_y_value ? max_x_value * 0.001 : max_y_value * 0.001;
+
+            ROS_INFO("Max Gradient: %f", max_gradient);
+
+            return max_gradient;
+        }
+
 
         /*
          * Callback function that handles processing the depth image
@@ -142,10 +173,7 @@ class LandingZoneDetector {
             float horizontal_range = diagonal * sin(beta);
             float vertical_range = diagonal * cos(beta);
 
-            // // Create a new cv bridge pointer
-            // cv_bridge::CvImageConstPtr cv_ptr;
-
-            // Comvert the ROS Image msg into a cv pointer
+            // Convert the ROS Image msg into a cv pointer
             try {
                 cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
             } catch (cv_bridge::Exception& e) {
