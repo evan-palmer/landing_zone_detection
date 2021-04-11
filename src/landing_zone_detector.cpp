@@ -125,11 +125,11 @@ class LandingZoneDetector {
             cv::Mat grad_x;
             cv::Mat grad_y;
 
-            // Calculate the x gradient
-            cv::Sobel(image, grad_x, -1, 1, 0);
+            // Calculate the x gradient using the scharr function
+            cv::Sobel(image, grad_x, -1, 1, 0, -1);
 
-            // Calculate the y gradient
-            cv::Sobel(image, grad_y, -1, 0, 1);
+            // Calculate the y gradient using the scharr function
+            cv::Sobel(image, grad_y, -1, 0, 1, -1);
 
             // Variables used to store min/max values
             double min_x_value, min_y_value;
