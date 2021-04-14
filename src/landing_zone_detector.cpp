@@ -126,10 +126,10 @@ class LandingZoneDetector {
             cv::Mat grad_y;
 
             // Calculate the x gradient using the scharr function
-            cv::Sobel(image, grad_x, -1, 1, 0, -1);
+            cv::Scharr(image, grad_x, -1, 1, 0);
 
             // Calculate the y gradient using the scharr function
-            cv::Sobel(image, grad_y, -1, 0, 1, -1);
+            cv::Scharr(image, grad_y, -1, 0, 1);
 
             // Variables used to store min/max values
             double min_x_value, min_y_value;
@@ -162,39 +162,43 @@ class LandingZoneDetector {
 
         bool test_get_max_gradient(void) {
             cv::Mat test_image_1 = cv::imread("TODO");
-            cv::Mat test_image_2 = cv::imread("TODO");
-            cv::Mat test_image_3 = cv::imread("TODO");
+            // cv::Mat test_image_2 = cv::imread("TODO");
+            // cv::Mat test_image_3 = cv::imread("TODO");
 
             if (test_image_1.empty()) {
                 ROS_INFO("Invalid image 1 loaded");
                 return false;
             }
 
-            if (test_image_2.empty()) {
-                ROS_INFO("Invalid image 2 loaded");
-                return false;
-            }
+            // if (test_image_2.empty()) {
+            //     ROS_INFO("Invalid image 2 loaded");
+            //     return false;
+            // }
 
-            if (test_image_3.empty()) {
-                ROS_INFO("Invalid image 3 loaded");
-                return false;
-            }
+            // if (test_image_3.empty()) {
+            //     ROS_INFO("Invalid image 3 loaded");
+            //     return false;
+            // }
 
             float true_value_1;
-            float true_value_2;
-            float true_value_3;
+            // float true_value_2;
+            // float true_value_3;
 
             float result_1 = get_max_gradient(test_image_1);
-            float result_2 = get_max_gradient(test_image_2);
-            float result_3 = get_max_gradient(test_image_3);
+            // float result_2 = get_max_gradient(test_image_2);
+            // float result_3 = get_max_gradient(test_image_3);
 
             ROS_INFO("Expected Value 1: %f Produced Value 1: %f", true_value_1, result_1);
-            ROS_INFO("Expected Value 2: %f Produced Value 2: %f", true_value_2, result_2);
-            ROS_INFO("Expected Value 3: %f Produced Value 3: %f", true_value_3, result_3);
+            // ROS_INFO("Expected Value 2: %f Produced Value 2: %f", true_value_2, result_2);
+            // ROS_INFO("Expected Value 3: %f Produced Value 3: %f", true_value_3, result_3);
 
-            if (almost_equal(true_value_1, result_1) && almost_equal(true_value_2, result_2) && almost_equal(true_value_3, result_3) {
+            if (almost_equal(true_value_1, result_1)) {
                 return true;
-            } 
+            }
+
+            // if (almost_equal(true_value_1, result_1) && almost_equal(true_value_2, result_2) && almost_equal(true_value_3, result_3) {
+            //     return true;
+            // } 
             
             return false;
         }
