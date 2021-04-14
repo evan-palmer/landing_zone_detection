@@ -227,6 +227,9 @@ class LandingZoneDetector {
             float horizontal_range = diagonal * sin(beta);
             float vertical_range = diagonal * cos(beta);
 
+            // Subtract off the IDB from the field-of-view
+            horizontal_range -= (horizontal_range/msg->width) * idb;
+
             // Convert the ROS Image msg into a cv pointer
             try {
                 cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
