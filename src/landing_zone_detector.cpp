@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <sensor_msgs/image_encodings.h>
+#include <stdlib.h>
 #include <math.h>
 
 static const std::string WINDOW = "Window";
@@ -55,7 +56,9 @@ class LandingZoneDetector {
             cv::namedWindow(WINDOW);
         }
 
-
+        /*
+         * Destructor
+         */
         ~LandingZoneDetector() {
             cv::destroyWindow(WINDOW);
         }
@@ -103,104 +106,90 @@ class LandingZoneDetector {
         
         /*
          * Testing Purposes
+         * Static method called on mouse hover or click
          */
         static void onMouse(int event, int x, int y, int, void* detector) {
+            // Cast the userparams (this) to a LandingZoneDetector object
             LandingZoneDetector* test = reinterpret_cast<LandingZoneDetector*>(detector);
+
+            // Call the class method to display the desired data
             test->mouse_callback(event, x, y);
         }
 
 
         /*
          * Testing Purposes
+         * Method used to get the distance at the selected point and display that to the user
          */
         void mouse_callback(int event, int x, int y) {
-            double distance = 0.001*cv_ptr->image.at<u_int16_t>(y, x);
+            // Get the distance at the selected point
+            double distance = 0.1 * cv_ptr->image.at<u_int16_t>(y, x);
 
             ROS_INFO("Distance at point (%d, %d): %f meters", x, y, distance);
         }
 
         
-        float get_max_gradient(const cv::Mat& image) {
-            // Matrices to store the gradients
-            cv::Mat grad_x;
-            cv::Mat grad_y;
+        /*
+         * Get an average depth from the image to determine the distance from the frame
+         */
+        float get_average_altitude(const cv::Mat& image, float horizontal_range, float vertical_range) {
+            float altitude = 0.0;     // Store the total distance for average computation
+            float x, y;               // x -> random column selected, y -> random row selected
+            float range = 10.0;       // The number of points to consider in the average calculation
+            float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
+            float depth = 0.0;        // The depth measurement at the selected point
+            
+            for (int i = 0; i < range; ++i) {
+                // Get the random points from the image to use for altitude calculation
+                x = std::rand() % horizontal_range;
+                y = std::rand() % vertical_range
 
-            // Calculate the x gradient using the scharr function
-            cv::Scharr(image, grad_x, -1, 1, 0);
+                // Get the depth and convert it to centimeters
+                float depth = 0.1 * image.at<u_int16_t>(y, x);
 
-            // Calculate the y gradient using the scharr function
-            cv::Scharr(image, grad_y, -1, 0, 1);
+                // Discard the value if it is an invalid pixel
+                if (depth == 0.0) {
+                    continue;
+                }
 
-            // Variables used to store min/max values
-            double min_x_value, min_y_value;
-            double max_x_value, max_y_value;
+                // Update the mean calculation params
+                altitude += depth;
+                actual_range++;
+            }
 
-            // Variables used to store min/max locations
-            cv::Point min_x_loc, min_y_loc;
-            cv::Point max_x_loc, max_y_loc;
-
-            cv::minMaxLoc(grad_x, &min_x_value, &max_x_value, &min_x_loc, &max_x_loc);
-            cv::minMaxLoc(grad_y, &min_y_value, &max_y_value, &min_y_loc, &max_y_loc);
-
-            float max_gradient = max_x_value > max_y_value ? max_x_value * 0.001 : max_y_value * 0.001;
-
-            ROS_INFO("Max Gradient: %f", max_gradient);
-
-            return max_gradient;
+            return altitude / actual_range;
         }
 
 
-        bool almost_equal(float a, float b, float epsilon = 128 * FLT_EPSILON, float abs_th = FLT_MIN) {
-            if (a == b) return true;
+        /*
+         * Method responsible for computing maximum gradient in the image
+         */
+        float get_gradient(const cv::Mat& image, int columns, int rows) {
+            float max_depth = 0.0;          // Max depth in the image (point furthest away)
+            float min_depth = INFINITY;     // Min depth in the image (point closest)
 
-            auto diff = std::abs(a-b);
-            auto norm = std::min((std::abs(a) + std::abs(b)), std::numeric_limits<float>::max());
-            
-            return diff < std::max(abs_th, epsilon * norm);
-        }
+            // Iterate through all pixels in the image
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < columns; ++j) {
 
+                    // Get the depth and convert it from mm to cm
+                    float depth = 0.1 * image.at<u_int16_t>(i, j);
 
-        bool test_get_max_gradient(void) {
-            cv::Mat test_image_1 = cv::imread("TODO");
-            // cv::Mat test_image_2 = cv::imread("TODO");
-            // cv::Mat test_image_3 = cv::imread("TODO");
+                    // Discard the value if it is an invalid depth measurement
+                    if (depth == 0.0) {
+                        continue;
+                    }
 
-            if (test_image_1.empty()) {
-                ROS_INFO("Invalid image 1 loaded");
-                return false;
+                    // Update the min/max values accordingly
+                    if (depth >= max_depth) {
+                        max_depth = depth;
+                    } else if (depth < min_depth) {
+                        min_depth = depth;
+                    }
+                }
             }
 
-            // if (test_image_2.empty()) {
-            //     ROS_INFO("Invalid image 2 loaded");
-            //     return false;
-            // }
-
-            // if (test_image_3.empty()) {
-            //     ROS_INFO("Invalid image 3 loaded");
-            //     return false;
-            // }
-
-            float true_value_1;
-            // float true_value_2;
-            // float true_value_3;
-
-            float result_1 = get_max_gradient(test_image_1);
-            // float result_2 = get_max_gradient(test_image_2);
-            // float result_3 = get_max_gradient(test_image_3);
-
-            ROS_INFO("Expected Value 1: %f Produced Value 1: %f", true_value_1, result_1);
-            // ROS_INFO("Expected Value 2: %f Produced Value 2: %f", true_value_2, result_2);
-            // ROS_INFO("Expected Value 3: %f Produced Value 3: %f", true_value_3, result_3);
-
-            if (almost_equal(true_value_1, result_1)) {
-                return true;
-            }
-
-            // if (almost_equal(true_value_1, result_1) && almost_equal(true_value_2, result_2) && almost_equal(true_value_3, result_3) {
-            //     return true;
-            // } 
-            
-            return false;
+            return max_depth - min_depth;
         }
 
 
@@ -208,17 +197,36 @@ class LandingZoneDetector {
          * Callback function that handles processing the depth image
          */
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
+            // Convert the ROS Image msg into a cv pointer
+            try {
+                // This is a class parameter to enable the mouse callback
+                // In the future, move the declaration to the method
+                cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
+            } catch (cv_bridge::Exception& e) {
+                ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
+                return;
+            }
+
+            // Get the number of columns and rows in the image
+            // The number of columns and rows in the image after conversion is used in case of discrepancy between message values
+            // and converted image sizes
+            int cols = (int)cv_ptr->image.cols;
+            int rows = (int)cv_ptr->image.rows;
+
+            // Get the average depth from the image to determine the approximate height
+            float altitude = get_average_altitude(cv_ptr->image, cols - 1, rows - 1);
+
             // Compute the invalid depth band ratio
-            float dbr = compute_dbr(baseline, horizontal_fov, test_distance);
+            float dbr = compute_dbr(baseline, horizontal_fov, altitude);
 
             // Compute the pixels associated with the invalid depth band
             float idb = compute_idb(dbr, msg->width) * padding_multiplier;
 
             // Compute the distance-based diagonal fov
-            float dfov = compute_diagonal_fov(horizontal_fov, baseline, test_distance);
+            float dfov = compute_diagonal_fov(horizontal_fov, baseline, altitude);
 
             // Compute the length of the diagonal
-            float diagonal = compute_diagonal(test_distance, dfov);
+            float diagonal = compute_diagonal(altitude, dfov);
 
             // Calculate beta
             float beta = compute_beta((float)msg->width, (float)msg->height);
@@ -228,43 +236,20 @@ class LandingZoneDetector {
             float vertical_range = diagonal * cos(beta);
 
             // Subtract off the IDB from the field-of-view
-            horizontal_range -= (horizontal_range/msg->width) * idb;
+            horizontal_range -= (horizontal_range/cols) * idb;
 
-            // Convert the ROS Image msg into a cv pointer
-            try {
-                cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
-            } catch (cv_bridge::Exception& e) {
-                ROS_ERROR("[ERROR] Error encountered when copying the image to a CV Image (cv_bridge error): %s", e.what());
-                return;
-            }
+            // Calculate the maximum depth gradient in the image
+            float gradient = get_gradient(cv_ptr->image, cols, rows);
 
-            // Get the number of columns and rows in the image
-            int cols = (int)cv_ptr->image.cols;
-            int rows = (int)cv_ptr->image.rows;
-
-            // double distance_top = 0.001*cv_ptr->image.at<u_int16_t>(0, cols/2);
-            // double distance_bottom = 0.001*cv_ptr->image.at<u_int16_t>(rows - 1, cols/2);
-            // double distance_left = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, idb - 1);
-            // double distance_right = 0.001*cv_ptr->image.at<u_int16_t>(rows/2, cols - 1);
-
-            // ROS_INFO("Distance Top: %f  Distance Bottom: %f  Distance Left: %f  Distance Right: %f", distance_top, distance_bottom, distance_left, distance_right);
+            ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f", horizontal_range, vertical_range, gradient);
 
             // Draw idb
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);
 
-            // Left Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(idb, rows/2 - 5), cv::Point2f(5 + idb, rows/2 + 5), 0xffff, 3);
-
-            // Right Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(cols - 5, rows/2 - 5), cv::Point2f(cols, rows/2 + 5), 0xffff, 3);
-
-            // Top Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, 0), cv::Point2f(cols/2 + 5, 5), 0xffff, 3);
-
-            // Bottom Box
-            cv::rectangle(cv_ptr->image, cv::Point2f(cols/2 - 5, rows - 5), cv::Point2f(cols/2 + 5, rows), 0xffff, 3);
-
+            // Display the depth image
             cv::imshow(WINDOW, cv_ptr->image);
+
+            // Set the mouse callback to see distance measurements on click/hover
             cv::setMouseCallback(WINDOW, onMouse, this);
             cv::waitKey(100);
         }
