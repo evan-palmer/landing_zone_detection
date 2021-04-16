@@ -7,6 +7,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <stdlib.h>
 #include <math.h>
+#include <bits/stdc++.h>
 
 static const std::string WINDOW = "Window";
 
@@ -132,29 +133,27 @@ class LandingZoneDetector {
         /*
          * Get an average depth from the image to determine the distance from the frame
          */
-        float get_average_altitude(const cv::Mat& image, int columns, int rows) {
+        float get_average_altitude(const cv::Mat& image, int columns, int rows) {           
             float altitude = 0.0;     // Store the total distance for average computation
             int x, y;                 // x -> random column selected, y -> random row selected
             float range = 10.0;       // The number of points to consider in the average calculation
             float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
             float depth = 0.0;        // The depth measurement at the selected point
             
-            for (int i = 0; i < range; ++i) {
-                // Get the random points from the image to use for altitude calculation
-                x = std::rand() % columns;
-                y = std::rand() % rows;
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    // Get the depth and convert it to centimeters
+                    float depth = 0.1 * image.at<u_int16_t>(i, j);
 
-                // Get the depth and convert it to centimeters
-                float depth = 0.1 * image.at<u_int16_t>(y, x);
+                    // Discard the value if it is an invalid pixel
+                    if (depth == 0.0) {
+                        continue;
+                    }
 
-                // Discard the value if it is an invalid pixel
-                if (depth == 0.0) {
-                    continue;
-                }
-
-                // Update the mean calculation params
-                altitude += depth;
-                actual_range++;
+                    // Update the mean calculation params
+                    altitude += depth;
+                    actual_range++;
+                }            
             }
 
             return altitude / actual_range;
