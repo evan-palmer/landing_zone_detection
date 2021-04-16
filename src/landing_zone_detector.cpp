@@ -132,17 +132,17 @@ class LandingZoneDetector {
         /*
          * Get an average depth from the image to determine the distance from the frame
          */
-        float get_average_altitude(const cv::Mat& image, float horizontal_range, float vertical_range) {
+        float get_average_altitude(const cv::Mat& image, int columns, int rows) {
             float altitude = 0.0;     // Store the total distance for average computation
-            float x, y;               // x -> random column selected, y -> random row selected
+            int x, y;                 // x -> random column selected, y -> random row selected
             float range = 10.0;       // The number of points to consider in the average calculation
             float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
             float depth = 0.0;        // The depth measurement at the selected point
             
             for (int i = 0; i < range; ++i) {
                 // Get the random points from the image to use for altitude calculation
-                x = std::rand() % horizontal_range;
-                y = std::rand() % vertical_range
+                x = std::rand() % columns;
+                y = std::rand() % rows
 
                 // Get the depth and convert it to centimeters
                 float depth = 0.1 * image.at<u_int16_t>(y, x);
