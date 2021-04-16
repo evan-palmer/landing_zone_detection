@@ -142,7 +142,7 @@ class LandingZoneDetector {
             for (int i = 0; i < range; ++i) {
                 // Get the random points from the image to use for altitude calculation
                 x = std::rand() % columns;
-                y = std::rand() % rows
+                y = std::rand() % rows;
 
                 // Get the depth and convert it to centimeters
                 float depth = 0.1 * image.at<u_int16_t>(y, x);
