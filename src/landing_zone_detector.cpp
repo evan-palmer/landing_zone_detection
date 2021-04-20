@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <sensor_msgs/image_encodings.h>
+#include "landing_zone_detection/LandingZone.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -18,6 +19,7 @@ class LandingZoneDetector {
 
         // Parameters
         std::string depth_topic;        // Topic to read the depth images from
+        std::string landing_zone_topic; // Topic to publish the gradient data to
         float baseline;                 // Distance from the left imager to the right imager
         float horizontal_resolution;    // Horizontal resolution of the left and right imagers
         float horizontal_fov;           // Horizontal field-of-view of the left and right imagers
@@ -32,6 +34,9 @@ class LandingZoneDetector {
         // Subscriber used to subscribe to the depth camera info
         image_transport::Subscriber depth_subscriber;
 
+        // Publisher used to publish the computed landing zone data
+        ros::Publisher landing_zone_publisher;
+
         // Create a new cv bridge pointer
         cv_bridge::CvImageConstPtr cv_ptr;
 
@@ -42,6 +47,7 @@ class LandingZoneDetector {
 
             // Load the system parameters
             _nh.getParam("depth_topic", depth_topic);
+            _nh.getParam("landing_zone_topic", landing_zone_topic);
             _nh.getParam("baseline", baseline);
             _nh.getParam("hfov", horizontal_fov);
             _nh.getParam("vfov", vertical_fov);
@@ -49,8 +55,14 @@ class LandingZoneDetector {
             _nh.getParam("padding_multiplier", padding_multiplier);
             _nh.getParam("test_distance", test_distance);
 
+            ROS_INFO("TOPIC: %s", depth_topic.c_str());
+            ROS_INFO("BASELINE: %f", baseline);
+
             // Initialize the depth subscriber and connect it to the correct callback function
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetector::depth_callback, this);
+
+            // Initialize the landing zone publisher object to publish the computed landing zone data
+            landing_zone_publisher = node.advertise<landing_zone_detection::LandingZone>(landing_zone_topic, 1);
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
@@ -125,7 +137,7 @@ class LandingZoneDetector {
             // Get the distance at the selected point
             double distance = 0.1 * cv_ptr->image.at<u_int16_t>(y, x);
 
-            ROS_INFO("Distance at point (%d, %d): %f meters", x, y, distance);
+            ROS_INFO("Distance at point (%d, %d): %f centimeters", x, y, distance);
         }
 
         
@@ -134,27 +146,24 @@ class LandingZoneDetector {
          */
         float get_average_altitude(const cv::Mat& image, float horizontal_range, float vertical_range) {
             float altitude = 0.0;     // Store the total distance for average computation
-            float x, y;               // x -> random column selected, y -> random row selected
-            float range = 10.0;       // The number of points to consider in the average calculation
             float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
-            float depth = 0.0;        // The depth measurement at the selected point
             
-            for (int i = 0; i < range; ++i) {
-                // Get the random points from the image to use for altitude calculation
-                x = std::rand() % horizontal_range;
-                y = std::rand() % vertical_range
+            // Get the average depth
+            // TODO: Update to be a histogram
+            for (int i = 0; i < vertical_range; ++i) {
+                for (int j = 0; j < horizontal_range; ++j) {
+                    // Get the depth and convert it to centimeters
+                    float depth = 0.1 * image.at<u_int16_t>(i, j);
 
-                // Get the depth and convert it to centimeters
-                float depth = 0.1 * image.at<u_int16_t>(y, x);
+                    // Discard the value if it is an invalid pixel
+                    if (depth == 0.0) {
+                        continue;
+                    }
 
-                // Discard the value if it is an invalid pixel
-                if (depth == 0.0) {
-                    continue;
-                }
-
-                // Update the mean calculation params
-                altitude += depth;
-                actual_range++;
+                    // Update the mean calculation params
+                    altitude += depth;
+                    actual_range++;
+                }                
             }
 
             return altitude / actual_range;
@@ -241,7 +250,23 @@ class LandingZoneDetector {
             // Calculate the maximum depth gradient in the image
             float gradient = get_gradient(cv_ptr->image, cols, rows);
 
-            ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f", horizontal_range, vertical_range, gradient);
+            // Debug statement
+            // ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f", horizontal_range, vertical_range, gradient);
+
+            // Create a new message to publish the computed gradient
+            landing_zone_detection::LandingZone lz_msg;
+
+            // // Fill out the landing zone message 
+            lz_msg.header.stamp = ros::Time::now();
+            lz_msg.header.frame_id = "/lz_camera";
+            lz_msg.horizontal_fov = horizontal_range;
+            lz_msg.vertical_fov = vertical_range;
+            lz_msg.gradient = gradient;
+            lz_msg.altitude = altitude;
+            lz_msg.acceptable = true;
+
+            // Publish the landing zone data
+            landing_zone_publisher.publish(lz_msg);
 
             // Draw idb
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);

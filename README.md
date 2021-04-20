@@ -1,4 +1,4 @@
-## Landing Zone Detection Package
+## Landing Zone Detection ROS Package
 
 ### Table of Contents
 * [Summary](#summary)
