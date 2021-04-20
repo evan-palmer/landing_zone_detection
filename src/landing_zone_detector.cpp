@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <bits/stdc++.h>
+#include <boost/circular_buffer.hpp>
+
 
 static const std::string WINDOW = "Window";
 
@@ -27,7 +29,8 @@ class LandingZoneDetector {
         float vertical_fov;             // Vertical field-of-view of the left and right imagers
         float diagonal_fov;             // Diagonal field-of-view of the left and right imagers
         float padding_multiplier;       // Parameter indicating the multiplier to apply to the width of the invalid depth band measurement (takes into account the adjacent invalid points)
-        float test_distance;            // Parameter to apply for testing distance (In future will be altitude)
+        float gradient_threshold;       // Parameter representing the maximum allowable threshold prior to rejecting a landing zone candidate
+        int cb_capacity;                // Capacity of the moving average circle buffer
 
         // Image transport object used to convert depth image to OpenCV image
         image_transport::ImageTransport it;
@@ -40,6 +43,9 @@ class LandingZoneDetector {
 
         // Create a new cv bridge pointer
         cv_bridge::CvImageConstPtr cv_ptr;
+
+        // Circle buffer to store gradients in for moving average calculation
+        boost::circular_buffer<float> buffer;
 
     public:
         LandingZoneDetector() : it(node) {
@@ -54,16 +60,22 @@ class LandingZoneDetector {
             _nh.getParam("vfov", vertical_fov);
             _nh.getParam("dfov", diagonal_fov);
             _nh.getParam("padding_multiplier", padding_multiplier);
-            _nh.getParam("test_distance", test_distance);
-
-            ROS_INFO("TOPIC: %s", depth_topic.c_str());
-            ROS_INFO("BASELINE: %f", baseline);
+            _nh.getParam("gradient_threshold", gradient_threshold);
+            _nh.getParam("cb_capacity", cb_capacity);
 
             // Initialize the depth subscriber and connect it to the correct callback function
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetector::depth_callback, this);
 
             // Initialize the landing zone publisher object to publish the computed landing zone data
             landing_zone_publisher = node.advertise<landing_zone_detection::LandingZone>(landing_zone_topic, 1);
+
+            // Set the buffer capacity
+            buffer.set_capacity(cb_capacity);
+
+            // Initialize the elements to be 0.0
+            for (int i = 0; i < buffer.capacity(); ++i) {
+                buffer.push_back(0.0);
+            }
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
@@ -145,14 +157,13 @@ class LandingZoneDetector {
         /*
          * Get an average depth from the image to determine the distance from the frame
          */
-        float get_average_altitude(const cv::Mat& image, int columns, int rows) {           
+        float get_average_altitude(const cv::Mat& image) {           
             float altitude = 0.0;     // Store the total distance for average computation
             float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
             
             // Get the average depth
-            // TODO: Update to be a histogram
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < columns; ++j) {
+            for (int i = 0; i < image.rows; ++i) {
+                for (int j = 0; j < image.cols; ++j) {
                     // Get the depth and convert it to centimeters
                     float depth = 0.1 * image.at<u_int16_t>(i, j);
 
@@ -171,16 +182,17 @@ class LandingZoneDetector {
         }
 
 
+
         /*
          * Method responsible for computing maximum gradient in the image
          */
-        float get_gradient(const cv::Mat& image, int columns, int rows) {
+        float get_gradient(const cv::Mat& image, int idb) {
             float max_depth = 0.0;          // Max depth in the image (point furthest away)
             float min_depth = INFINITY;     // Min depth in the image (point closest)
 
             // Iterate through all pixels in the image
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < columns; ++j) {
+            for (int i = 0; i < image.rows; ++i) {
+                for (int j = idb; j < image.cols; ++j) {
 
                     // Get the depth and convert it from mm to cm
                     float depth = 0.1 * image.at<u_int16_t>(i, j);
@@ -199,9 +211,23 @@ class LandingZoneDetector {
                 }
             }
 
-            ROS_INFO("Max Depth: %f  Min Depth: %f", max_depth, min_depth);
-
             return max_depth - min_depth;
+        }
+
+
+        /*
+         * Method responsible for computing the average of the gradient measurements in the circle buffer
+         */
+        float get_running_average_gradient(void) {
+            float average_gradient = 0.0;
+
+            for (int i = 0; i < buffer.capacity(); ++i) {
+                average_gradient += buffer[i];
+            }
+
+            average_gradient /= buffer.capacity();
+
+            return average_gradient;
         }
 
 
@@ -219,14 +245,8 @@ class LandingZoneDetector {
                 return;
             }
 
-            // Get the number of columns and rows in the image
-            // The number of columns and rows in the image after conversion is used in case of discrepancy between message values
-            // and converted image sizes
-            int cols = (int)cv_ptr->image.cols;
-            int rows = (int)cv_ptr->image.rows;
-
             // Get the average depth from the image to determine the approximate height
-            float altitude = get_average_altitude(cv_ptr->image, cols - 1, rows - 1);
+            float altitude = get_average_altitude(cv_ptr->image);
 
             // Compute the invalid depth band ratio
             float dbr = compute_dbr(baseline, horizontal_fov, altitude);
@@ -248,13 +268,22 @@ class LandingZoneDetector {
             float vertical_range = diagonal * cos(beta);
 
             // Subtract off the IDB from the field-of-view
-            horizontal_range -= (horizontal_range/cols) * idb;
+            horizontal_range -= (horizontal_range/cv_ptr->image.cols) * idb;
 
             // Calculate the maximum depth gradient in the image
-            float gradient = get_gradient(cv_ptr->image, cols, rows);
+            float gradient = get_gradient(cv_ptr->image, idb);
+
+            // Add the most recent gradient calculation to the circle buffer
+            buffer.push_back(gradient);
+
+            // Get the moving average
+            float average_gradient = get_running_average_gradient();
+
+            // Determine whether the landing zone is acceptable
+            bool acceptable = average_gradient > gradient_threshold ? false : true;
 
             // Debug statement
-            // ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f", horizontal_range, vertical_range, gradient);
+            // ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f  Average Gradient: %f", horizontal_range, vertical_range, gradient, average_gradient);
 
             // Create a new message to publish the computed gradient
             landing_zone_detection::LandingZone lz_msg;
@@ -264,15 +293,17 @@ class LandingZoneDetector {
             lz_msg.header.frame_id = "/lz_camera";
             lz_msg.horizontal_fov = horizontal_range;
             lz_msg.vertical_fov = vertical_range;
-            lz_msg.gradient = gradient;
+            lz_msg.last_gradient = gradient;
+            lz_msg.average_gradient = average_gradient;
             lz_msg.altitude = altitude;
-            lz_msg.acceptable = true;
+            lz_msg.idb = idb;
+            lz_msg.acceptable = acceptable;
 
             // Publish the landing zone data
             landing_zone_publisher.publish(lz_msg);
 
             // Draw idb
-            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, rows - 1), 0xffff00, 2);
+            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, cv_ptr->image.rows - 1), 0xffff00, 2);
 
             // Display the depth image
             cv::imshow(WINDOW, cv_ptr->image);

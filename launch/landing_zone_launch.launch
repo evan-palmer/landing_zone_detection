@@ -8,6 +8,7 @@
     <param name="enable_auto_exposure" value="False"/>
     <param name="exposure" value="20000"/>
     <param name="frames_queue_size" value="16"/>
-    <param name="filter_smooth_delta" value="20"/>
-    <param name="filter_smooth_alpha" value="0.4000000059604645"/>
+    <param name="filter_smooth_delta" value="30"/>
+    <param name="filter_smooth_alpha" value="0.2000000059604645"/>
+    <param name="initial_reset" value="True"/>
 </launch>

@@ -140,12 +140,14 @@ Prior to beginning, it is recommended that the swap size of the RPi4 is increase
 
 #### Installation Check
 After installation completion, the system should have the following directory structure.
-**NOTE:** This is not yet completed; however, the general idea is that the two packages should be located in the same location.
 ```bash
 ├── ros_catkin_ws/
+│   ├── build/
+│   ├── devel/
+│   ├── install/
 │   ├── src/
-│   │   ├── ros_realsense/
-└── └── └── landing_zone_detection/
+│   │   ├── landing_zone_detection/
+└── └── └── realsense_ros/
 ```
 
 ***
@@ -167,7 +169,7 @@ To adjust the parameters of the Intel Realsense camera, follow the instructions 
     * `cd ros_catkin_ws/src/landing_zone_detection/launch/`
 2. Open the launch file using your file editor of choice
     * `nano landing_zone_launch.launch`
-3. In the launch file one RealSense filter is enabled: the `temporal` filter. This is observable in the following line. To integrate additional filters. Add them to this line.
+3. In the launch file one RealSense filter is enabled: the `temporal` filter. This is observable in the following line. To integrate additional filters, add them to this line by specifying them in a comma-delimited fashion (e.g., `"temporal,hole_filling"`).
     * `<arg name="filters" value="temporal"/>`
 4. In the launch file, several RealSense camera parameters are set. These values can be adjusted to their desired settings.
     * `enable_auto_exposure` 
@@ -177,7 +179,7 @@ To adjust the parameters of the Intel Realsense camera, follow the instructions 
     * `frames_queue_size` 
         * Value: `16`
     * `filter_smooth_delta` 
-        * Value: `20`
+        * Value: `30`
     * `filter_smooth_alpha` 
-        * Value: `0.4000000059604645`
+        * Value: `0.2000000059604645`
 
