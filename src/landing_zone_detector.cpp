@@ -151,8 +151,8 @@ class LandingZoneDetector {
             
             // Get the average depth
             // TODO: Update to be a histogram
-            for (int i = 0; i < vertical_range; ++i) {
-                for (int j = 0; j < horizontal_range; ++j) {
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < columns; ++j) {
                     // Get the depth and convert it to centimeters
                     float depth = 0.1 * image.at<u_int16_t>(i, j);
 
@@ -198,6 +198,8 @@ class LandingZoneDetector {
                     }
                 }
             }
+
+            ROS_INFO("Max Depth: %f  Min Depth: %f", max_depth, min_depth);
 
             return max_depth - min_depth;
         }
