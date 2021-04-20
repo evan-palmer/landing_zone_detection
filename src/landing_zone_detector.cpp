@@ -8,6 +8,7 @@
 #include "landing_zone_detection/LandingZone.h"
 #include <stdlib.h>
 #include <math.h>
+#include <bits/stdc++.h>
 
 static const std::string WINDOW = "Window";
 
@@ -144,7 +145,7 @@ class LandingZoneDetector {
         /*
          * Get an average depth from the image to determine the distance from the frame
          */
-        float get_average_altitude(const cv::Mat& image, float horizontal_range, float vertical_range) {
+        float get_average_altitude(const cv::Mat& image, int columns, int rows) {           
             float altitude = 0.0;     // Store the total distance for average computation
             float actual_range = 0.0; // The actual number of points used (done to account for invalid pixels selected)
             
