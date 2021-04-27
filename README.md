@@ -20,13 +20,14 @@ The landing zone detection package contains the implementation for a ROS package
 
 ```bash
 ├── landing_zone_detection/
+│   ├── config/
+│   │   └── params.yaml
 │   ├── launch/
 │   │   └── landing_zone_launch.launch
 │   ├── src/
 │   │   └── landing_zone_detector.cpp
 │   ├── CMakeLists.txt
 │   ├── package.xml
-│   ├── params.yaml
 └── └── README.md
 ```
 
