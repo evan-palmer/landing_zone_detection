@@ -13,6 +13,7 @@
 
 
 static const std::string WINDOW = "Window";
+static const std::string HELP = "HELP";
 
 class LandingZoneDetector {
     private:
@@ -30,6 +31,8 @@ class LandingZoneDetector {
         float diagonal_fov;             // Diagonal field-of-view of the left and right imagers
         float padding_multiplier;       // Parameter indicating the multiplier to apply to the width of the invalid depth band measurement (takes into account the adjacent invalid points)
         float gradient_threshold;       // Parameter representing the maximum allowable threshold prior to rejecting a landing zone candidate
+        float horizontal_scale;         // Scale to restrict the horizontal fov to
+        float vertical_scale;           // Scale to restrict the vertical fov to
         int cb_capacity;                // Capacity of the moving average circle buffer
 
         // Image transport object used to convert depth image to OpenCV image
@@ -61,6 +64,8 @@ class LandingZoneDetector {
             _nh.getParam("dfov", diagonal_fov);
             _nh.getParam("padding_multiplier", padding_multiplier);
             _nh.getParam("gradient_threshold", gradient_threshold);
+            _nh.getParam("horiz_fov_scale", horizontal_scale);
+            _nh.getParam("vert_fov_scale", vertical_scale);
             _nh.getParam("cb_capacity", cb_capacity);
 
             // Initialize the depth subscriber and connect it to the correct callback function
@@ -182,17 +187,38 @@ class LandingZoneDetector {
         }
 
 
+        /*
+         * Scale the image down to the desired size
+         */
+        cv::Mat get_scaled_image(const cv::Mat& image, int idb, float horizontal_scale, float vertical_scale) {
+            // Calculate the number of pixels to extract
+            float vertical_pixels = (float)image.rows * (1.0 - vertical_scale);
+            float horizontal_pixels = (float)(image.cols - idb) * (1.0 - horizontal_scale);
+
+            // Calculate the start and end pixels for the ROI
+            int x = (int)floor(horizontal_pixels / 2);
+            int y = (int)floor(vertical_pixels / 2);
+
+            // Calculate a rectangle with the restricted field of view
+            cv::Rect scale(x + idb, y, (image.cols - idb) - 2 * x, image.rows - 2 * y);
+            
+            // Apply the scale to the image
+            cv::Mat scaled_image = image(scale);
+            
+            return scaled_image;
+        }
+
 
         /*
          * Method responsible for computing maximum gradient in the image
          */
-        float get_gradient(const cv::Mat& image, int idb) {
+        float get_gradient(const cv::Mat& image) {
             float max_depth = 0.0;          // Max depth in the image (point furthest away)
             float min_depth = INFINITY;     // Min depth in the image (point closest)
 
             // Iterate through all pixels in the image
             for (int i = 0; i < image.rows; ++i) {
-                for (int j = idb; j < image.cols; ++j) {
+                for (int j = 0; j < image.cols; ++j) {
 
                     // Get the depth and convert it from mm to cm
                     float depth = 0.1 * image.at<u_int16_t>(i, j);
@@ -270,8 +296,15 @@ class LandingZoneDetector {
             // Subtract off the IDB from the field-of-view
             horizontal_range -= (horizontal_range/cv_ptr->image.cols) * idb;
 
+            horizontal_range *= horizontal_scale;
+            vertical_range *= vertical_scale;
+
+            // Calculate the restricted image
+            // NOTE: This also removes the IDB from the image
+            cv::Mat restricted_image = get_scaled_image(cv_ptr->image, idb, horizontal_scale, vertical_scale);
+
             // Calculate the maximum depth gradient in the image
-            float gradient = get_gradient(cv_ptr->image, idb);
+            float gradient = get_gradient(restricted_image);
 
             // Add the most recent gradient calculation to the circle buffer
             buffer.push_back(gradient);

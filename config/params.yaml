@@ -7,10 +7,14 @@ baseline: 95               # mm
 hfov: 1.5708               # 90 +- 1 degrees
 vfov: 1.13446              # 65 +- 1 degrees
 dfov: 1.55334              # 89 +- 1 degrees
-padding_multiplier: 0.35
+padding_multiplier: 0.35   # Multiplier to apply to the padding of of the IDB
 
 # Moving Average
 cb_capacity: 10
 
 # Threshold
 gradient_threshold: 50     # cm
+
+# FOV Scale
+horiz_fov_scale: 0.9       # Percent of the horizontal fov to maintain
+vert_fov_scale: 0.9        # Percent of the vertical fov to maintain
