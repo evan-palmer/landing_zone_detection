@@ -1,6 +1,7 @@
 # Topics
 depth_topic: "/camera/depth/image_rect_raw"
 landing_zone_topic: "/landing_zone_detection/landing_zone"
+imu_topic: "/camera/imu"
 
 # IDR
 baseline: 95               # mm

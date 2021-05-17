@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/Imu.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
@@ -21,9 +22,12 @@ class LandingZoneDetector {
         ros::NodeHandle node;
         ros::NodeHandle _nh;
 
-        // Parameters
+        // Topics
         std::string depth_topic;        // Topic to read the depth images from
         std::string landing_zone_topic; // Topic to publish the gradient data to
+        std::string imu_topic;          // Topic to read the IMU data from
+
+        // Parameters
         float baseline;                 // Distance from the left imager to the right imager
         float horizontal_resolution;    // Horizontal resolution of the left and right imagers
         float horizontal_fov;           // Horizontal field-of-view of the left and right imagers
@@ -40,6 +44,7 @@ class LandingZoneDetector {
 
         // Subscriber used to subscribe to the depth camera info
         image_transport::Subscriber depth_subscriber;
+        ros::Subscriber imu_subscriber;
 
         // Publisher used to publish the computed landing zone data
         ros::Publisher landing_zone_publisher;
@@ -50,6 +55,9 @@ class LandingZoneDetector {
         // Circle buffer to store gradients in for moving average calculation
         boost::circular_buffer<float> buffer;
 
+        // Current Camera Orientation
+        double roll, pitch, yaw;
+
     public:
         LandingZoneDetector() : it(node) {
             // Initialize the node handles
@@ -58,6 +66,7 @@ class LandingZoneDetector {
             // Load the system parameters
             _nh.getParam("depth_topic", depth_topic);
             _nh.getParam("landing_zone_topic", landing_zone_topic);
+            _nh.getParam("imu_topic", imu_topic);
             _nh.getParam("baseline", baseline);
             _nh.getParam("hfov", horizontal_fov);
             _nh.getParam("vfov", vertical_fov);
@@ -70,6 +79,7 @@ class LandingZoneDetector {
 
             // Initialize the depth subscriber and connect it to the correct callback function
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetector::depth_callback, this);
+            imu_subscriber = node.subscribe(imu_topic, 1, &LandingZoneDetector::imu_callback, this);
 
             // Initialize the landing zone publisher object to publish the computed landing zone data
             landing_zone_publisher = node.advertise<landing_zone_detection::LandingZone>(landing_zone_topic, 1);
@@ -81,6 +91,11 @@ class LandingZoneDetector {
             for (int i = 0; i < buffer.capacity(); ++i) {
                 buffer.push_back(0.0);
             }
+
+            // Initialize Orientation
+            roll = 0.0f;
+            pitch = 0.0f;
+            yaw = 0.0f;
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
@@ -344,6 +359,10 @@ class LandingZoneDetector {
             // Set the mouse callback to see distance measurements on click/hover
             cv::setMouseCallback(WINDOW, onMouse, this);
             cv::waitKey(100);
+        }
+
+        void imu_callback(const sensor_msgs::ImuConstPtr& msg) {
+            // TODO   
         }
 };
 
