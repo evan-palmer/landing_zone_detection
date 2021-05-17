@@ -22,6 +22,10 @@ class LandingZoneDetector {
         ros::NodeHandle node;
         ros::NodeHandle _nh;
 
+        // Arguments
+        bool display;                   // Argument used to specify whether to display depth output
+        bool debug;                     // Argument used to specify to print debug statements
+
         // Topics
         std::string depth_topic;        // Topic to read the depth images from
         std::string landing_zone_topic; // Topic to publish the gradient data to
@@ -58,8 +62,11 @@ class LandingZoneDetector {
         // Current Camera Orientation
         double roll, pitch, yaw;
 
+        // Previous Camera Orientation (used for complementary filter)
+        double prev_roll, prev_pitch, prev_yaw;
+
     public:
-        LandingZoneDetector() : it(node) {
+        LandingZoneDetector(bool debug_mode, bool display_mode) : it(node), debug(debug_mode), display(display_mode) {
             // Initialize the node handles
             _nh = ros::NodeHandle("~");
 
@@ -93,9 +100,8 @@ class LandingZoneDetector {
             }
 
             // Initialize Orientation
-            roll = 0.0f;
-            pitch = 0.0f;
-            yaw = 0.0f;
+            roll, pitch, yaw = 0.0f;
+            prev_roll, prev_pitch, prev_yaw = 0.0f;
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
@@ -353,16 +359,18 @@ class LandingZoneDetector {
             // Draw idb
             cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, cv_ptr->image.rows - 1), 0xffff00, 2);
 
-            // Display the depth image
-            cv::imshow(WINDOW, cv_ptr->image);
+            if (display) {
+                // Display the depth image
+                cv::imshow(WINDOW, cv_ptr->image);
 
-            // Set the mouse callback to see distance measurements on click/hover
-            cv::setMouseCallback(WINDOW, onMouse, this);
-            cv::waitKey(100);
+                // Set the mouse callback to see distance measurements on click/hover
+                cv::setMouseCallback(WINDOW, onMouse, this);
+                cv::waitKey(100);
+            }
         }
 
         void imu_callback(const sensor_msgs::ImuConstPtr& msg) {
-            // TODO   
+            // pitch += (msg->angular_velocity.x )
         }
 };
 
@@ -370,8 +378,29 @@ class LandingZoneDetector {
 
 
 int main(int argc, char ** argv) {
+    if (argc <= 1) {
+        ROS_DEBUG("Invalid number of arguments provided at launch");
+        return 0;
+    }
+    
+    std::stringstream ss;
+    
+    bool debug_mode, display_mode;
+
+    // Read the debug mode and set the respective variable value
+    ss << argv[1];
+    ss >> std::boolalpha >> debug_mode;
+
+    // Read the display mode and set the respective variable value
+    ss << argv[2];
+    ss >> std::boolalpha >> display_mode;
+
+    // Initialize the ROS  ode
     ros::init(argc, argv, "landing_zone_detector_node");
-    LandingZoneDetector lz;
+    
+    // Instantiate a new LandingZoneDetector object to run
+    LandingZoneDetector lz(debug_mode, display_mode);
+
     ros::spin();
     return 0;
 }

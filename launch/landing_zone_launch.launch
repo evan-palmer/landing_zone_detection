@@ -1,5 +1,7 @@
 <launch>
-    <node pkg="landing_zone_detection" type="landing_zone_detector_node" name="landing_zone_detector_node" output="screen">
+    <arg name="debug"                  default="false"/>
+    <arg name="display"                default="false"/>
+    <node pkg="landing_zone_detection" type="landing_zone_detector_node" name="landing_zone_detector_node" args="$(arg display) $(arg display)" output="screen">
         <rosparam command="load" file="$(find landing_zone_detection)/config/params.yaml"/>
     </node>
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
