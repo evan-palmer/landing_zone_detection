@@ -66,7 +66,6 @@ class LandingZoneDetector {
         double prev_gyro_x, prev_gyro_y;         // Previous gyroscope measurements
         ros::Time current_ts, prev_ts;           // Timestamps that the IMU data was measured at
         bool first_imu;                          // Flag used to indicate whether this is the first imu message read
-true
 
     public:
         LandingZoneDetector(bool debug_mode, bool display_mode) : it(node), debug(debug_mode), display(display_mode) {
@@ -320,7 +319,7 @@ true
             // Reset the timestamps
             prev_ts = current_ts;
 
-            // Apply the complementary filter
+            // Apply the complementary filter to calculate roll and pitch
             double accel_angle_x = (atan(accel_y / sqrt(pow(accel_x, 2) + pow(accel_z, 2))) * 180 / M_PI);
             double accel_angle_y = (atan(-1 * accel_x / sqrt(pow(accel_y, 2) + pow(accel_z, 2))) * 180 / M_PI);
 
@@ -337,6 +336,15 @@ true
             if (debug) {
                 ROS_INFO("Roll: %f  Pitch: %f", roll, pitch);
             }
+        }
+
+
+        /*
+         * Apply correction to the depth mapping according to the rotation of the camera
+         * This is done to account for instances where the drone is flying at an angle (note that the camera is not mounted to a gimbal)
+         */
+        cv::Mat apply_angular_correction(const cv::Mat& depth_image, double roll, double pitch) {
+            // TODO
         }
 
 
@@ -377,6 +385,7 @@ true
             // Subtract off the IDB from the field-of-view
             horizontal_range -= (horizontal_range/cv_ptr->image.cols) * idb;
 
+            // Apply the FOV restriction
             horizontal_range *= horizontal_scale;
             vertical_range *= vertical_scale;
 
@@ -400,6 +409,8 @@ true
             if (debug) {
                 ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f  Average Gradient: %f", horizontal_range, vertical_range, gradient, average_gradient);
             }
+            
+            // TODO: Implement angular correction
             
             // Create a new message to publish the computed gradient
             landing_zone_detection::LandingZone lz_msg;
