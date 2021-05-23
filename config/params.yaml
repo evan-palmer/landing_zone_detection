@@ -1,7 +1,6 @@
 # Topics
 depth_topic: "/camera/depth/image_rect_raw"
 landing_zone_topic: "/landing_zone_detection/landing_zone"
-imu_topic: "/camera/imu"
 
 # IDR
 baseline: 95               # mm
@@ -19,6 +18,3 @@ gradient_threshold: 50     # cm
 # FOV Scale
 horiz_fov_scale: 0.6       # Percent of the horizontal fov to maintain
 vert_fov_scale: 0.8        # Percent of the vertical fov to maintain
-
-# Depth Angular Correction
-alpha: 0.98                # Alpha value to use for the integrated complementary filter

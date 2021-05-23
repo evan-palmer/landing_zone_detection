@@ -13,7 +13,8 @@
 #include <boost/circular_buffer.hpp>
 
 
-static const std::string WINDOW = "Depth Camera Feed";
+static const std::string WINDOW = "Processed Depth Camera Feed";
+static const std::string ORIGINAL = "Original Depth Camera Feed";
 
 
 class LandingZoneDetector {
@@ -29,7 +30,6 @@ class LandingZoneDetector {
         // Topics
         std::string depth_topic;        // Topic to read the depth images from
         std::string landing_zone_topic; // Topic to publish the gradient data to
-        std::string imu_topic;          // Topic to read the IMU data from
 
         // Parameters
         float baseline;                 // Distance from the left imager to the right imager
@@ -41,7 +41,6 @@ class LandingZoneDetector {
         float gradient_threshold;       // Parameter representing the maximum allowable threshold prior to rejecting a landing zone candidate
         float horizontal_scale;         // Scale to restrict the horizontal fov to
         float vertical_scale;           // Scale to restrict the vertical fov to
-        double alpha;                   // Alpha value to use for complementary filter
         int cb_capacity;                // Capacity of the moving average circle buffer
 
         // Image transport object used to convert depth image to OpenCV image
@@ -60,22 +59,16 @@ class LandingZoneDetector {
         // Circle buffer to store gradients in for moving average calculation
         boost::circular_buffer<float> buffer;
 
-        // Variables used to handle angular depth correction
-        double roll, pitch;                      // Current Camera Orientation
-        double prev_roll, prev_pitch;            // Previous Camera Orientation (used for complementary filter)
-        double prev_gyro_x, prev_gyro_y;         // Previous gyroscope measurements
-        ros::Time current_ts, prev_ts;           // Timestamps that the IMU data was measured at
-        bool first_imu;                          // Flag used to indicate whether this is the first imu message read
-
     public:
-        LandingZoneDetector(bool debug_mode, bool display_mode) : it(node), debug(debug_mode), display(display_mode) {
+        LandingZoneDetector(bool debug_mode, bool display_mode) 
+            : it(node), debug(debug_mode), display(display_mode)
+        {
             // Initialize the node handles
             _nh = ros::NodeHandle("~");
 
             // Load the system parameters
             _nh.getParam("depth_topic", depth_topic);
             _nh.getParam("landing_zone_topic", landing_zone_topic);
-            _nh.getParam("imu_topic", imu_topic);
             _nh.getParam("baseline", baseline);
             _nh.getParam("hfov", horizontal_fov);
             _nh.getParam("vfov", vertical_fov);
@@ -85,11 +78,9 @@ class LandingZoneDetector {
             _nh.getParam("horiz_fov_scale", horizontal_scale);
             _nh.getParam("vert_fov_scale", vertical_scale);
             _nh.getParam("cb_capacity", cb_capacity);
-            _nh.getParam("alpha", alpha);
 
             // Initialize the depth subscriber and connect it to the correct callback function
             depth_subscriber = it.subscribe(depth_topic, 1, &LandingZoneDetector::depth_callback, this);
-            imu_subscriber = node.subscribe(imu_topic, 1, &LandingZoneDetector::imu_callback, this);
 
             // Initialize the landing zone publisher object to publish the computed landing zone data
             landing_zone_publisher = node.advertise<landing_zone_detection::LandingZone>(landing_zone_topic, 1);
@@ -101,12 +92,6 @@ class LandingZoneDetector {
             for (int i = 0; i < buffer.capacity(); ++i) {
                 buffer.push_back(0.0);
             }
-
-            // Initialize angular correction variables
-            roll, pitch = 0.0f;
-            prev_gyro_x, prev_gyro_y = 0.0f;
-            prev_roll, prev_pitch = 0.0f;
-            first_imu = true;
 
             // Initialize a new OpenCV window
             cv::namedWindow(WINDOW);
@@ -166,10 +151,10 @@ class LandingZoneDetector {
          */
         static void onMouse(int event, int x, int y, int, void* detector) {
             // Cast the userparams (this) to a LandingZoneDetector object
-            LandingZoneDetector* test = reinterpret_cast<LandingZoneDetector*>(detector);
+            LandingZoneDetector* lz = reinterpret_cast<LandingZoneDetector*>(detector);
 
             // Call the class method to display the desired data
-            test->mouse_callback(event, x, y);
+            lz->mouse_callback(event, x, y);
         }
 
 
@@ -284,71 +269,6 @@ class LandingZoneDetector {
 
 
         /*
-         * Callback used to collect the accelerometer and gyroscope data from the camera IMU then convert it to roll and pitch
-         * using a complementary filter
-         */
-        void imu_callback(const sensor_msgs::ImuConstPtr& msg) {
-            if (first_imu) {
-                first_imu = false;
-                prev_ts = ros::Time::now();
-                return;
-            }
-
-            double accel_x, accel_y, accel_z;
-            double gyro_x, gyro_y, gyro_z;
-
-            // Read the accelerometer data
-            accel_x = msg->linear_acceleration.x;
-            accel_y = msg->linear_acceleration.y;
-            accel_z = msg->linear_acceleration.z;
-            
-            // Read the gyroscope data
-            gyro_x = msg->angular_velocity.x;
-            gyro_y = msg->angular_velocity.y;
-            gyro_z = msg->angular_velocity.z;
-        
-            // Get the current timestamp
-            current_ts = ros::Time::now();
-
-            // Measure the duration
-            ros::Duration uncasted_duration = current_ts - prev_ts;
-            
-            // Get the duration in seconds
-            double duration = uncasted_duration.toSec();
-
-            // Reset the timestamps
-            prev_ts = current_ts;
-
-            // Apply the complementary filter to calculate roll and pitch
-            double accel_angle_x = (atan(accel_y / sqrt(pow(accel_x, 2) + pow(accel_z, 2))) * 180 / M_PI);
-            double accel_angle_y = (atan(-1 * accel_x / sqrt(pow(accel_y, 2) + pow(accel_z, 2))) * 180 / M_PI);
-
-            double gyro_angle_x = prev_gyro_x + gyro_angle_x * duration;
-            double gyro_angle_y = prev_gyro_y + gyro_angle_y * duration;
-
-            roll = alpha * (roll + gyro_angle_x * duration) + (1 - alpha) * accel_angle_x;
-            pitch = alpha * (pitch + gyro_angle_y * duration) + (1 - alpha) * accel_angle_y;
-
-            // Reset the previous gyroscope measurement values
-            prev_gyro_x = gyro_angle_x;
-            prev_gyro_y = gyro_angle_y;
-
-            if (debug) {
-                ROS_INFO("Roll: %f  Pitch: %f", roll, pitch);
-            }
-        }
-
-
-        /*
-         * Apply correction to the depth mapping according to the rotation of the camera
-         * This is done to account for instances where the drone is flying at an angle (note that the camera is not mounted to a gimbal)
-         */
-        cv::Mat apply_angular_correction(const cv::Mat& depth_image, double roll, double pitch) {
-            // TODO
-        }
-
-
-        /*
          * Callback function that handles processing the depth image
          */
         void depth_callback(const sensor_msgs::ImageConstPtr& msg) {
@@ -405,12 +325,9 @@ class LandingZoneDetector {
             // Determine whether the landing zone is acceptable
             bool acceptable = average_gradient > gradient_threshold ? false : true;
 
-            // Debug statement
             if (debug) {
                 ROS_INFO("Horizontal Range: %f  Vertical Range: %f  Max Gradient: %f  Average Gradient: %f", horizontal_range, vertical_range, gradient, average_gradient);
             }
-            
-            // TODO: Implement angular correction
             
             // Create a new message to publish the computed gradient
             landing_zone_detection::LandingZone lz_msg;
@@ -429,12 +346,13 @@ class LandingZoneDetector {
             // Publish the landing zone data
             landing_zone_publisher.publish(lz_msg);
 
-            // Draw idb
-            cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, cv_ptr->image.rows - 1), 0xffff00, 2);
-
             if (display) {
-                // Display the depth image
-                cv::imshow(WINDOW, cv_ptr->image);
+                // Draw idb
+                cv::rectangle(cv_ptr->image, cv::Point2f(0, 0), cv::Point2f(idb - 1, cv_ptr->image.rows - 1), 0xffff00, 2);
+    
+                // Display the depth images
+                cv::imshow(WINDOW, restricted_image);
+                cv::imshow("Original Image", cv_ptr->image);
 
                 // Set the mouse callback to see distance measurements on click/hover
                 cv::setMouseCallback(WINDOW, onMouse, this);
@@ -446,7 +364,7 @@ class LandingZoneDetector {
 
 int main(int argc, char ** argv) {
     if (argc <= 1) {
-        ROS_DEBUG("Invalid number of arguments provided at launch");
+        ROS_INFO("Invalid number of arguments provided at launch");
         return 0;
     }
     
